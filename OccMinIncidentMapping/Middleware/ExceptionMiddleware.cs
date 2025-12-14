@@ -8,13 +8,16 @@ namespace OccMinIncidentMapping.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<ExceptionMiddleware> _logger;
+        private readonly IHostEnvironment _environment;
 
         public ExceptionMiddleware(
             RequestDelegate next,
-            ILogger<ExceptionMiddleware> logger)
+            ILogger<ExceptionMiddleware> logger,
+            IHostEnvironment environment)
         {
             _next = next;
             _logger = logger;
+            _environment = environment;
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -25,7 +28,7 @@ namespace OccMinIncidentMapping.Middleware
             }
             catch (ValidationException ex) // FluentValidation's exception
             {
-                _logger.LogWarning(ex, "Validation error");
+                _logger.LogWarning(ex, "Validation error occurred");
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                 context.Response.ContentType = "application/json";
 
@@ -41,16 +44,30 @@ namespace OccMinIncidentMapping.Middleware
                     details = errors
                 }));
             }
-            catch (Exception ex)
+            catch (UnauthorizedAccessException ex)
             {
-                _logger.LogError(ex, "Unhandled exception");
-                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                _logger.LogWarning(ex, "Unauthorized access attempt");
+                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                 context.Response.ContentType = "application/json";
+
                 await context.Response.WriteAsync(JsonSerializer.Serialize(new
                 {
-                    error = "Internal server error",
-                    details = ex.Message
+                    error = "Unauthorized",
+                    details = "Invalid credentials or access denied"
                 }));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled exception occurred");
+                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                context.Response.ContentType = "application/json";
+
+                // Only expose detailed error messages in development
+                var errorResponse = _environment.IsDevelopment()
+                    ? new { error = "Internal server error", details = ex.Message }
+                    : new { error = "Internal server error", details = "An unexpected error occurred" };
+
+                await context.Response.WriteAsync(JsonSerializer.Serialize(errorResponse));
             }
         }
     }
