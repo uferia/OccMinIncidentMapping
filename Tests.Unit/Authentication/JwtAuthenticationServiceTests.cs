@@ -138,7 +138,6 @@ namespace Tests.Unit.Authentication
         }
 
         [TestMethod]
-        [ExpectedException(typeof(InvalidOperationException))]
         public async Task GenerateTokenAsync_WithMissingSecretKey_ThrowsException()
         {
             // Arrange
@@ -148,12 +147,12 @@ namespace Tests.Unit.Authentication
                 config.Object,
                 _mockLogger.Object);
 
-            // Act
-            await service.GenerateTokenAsync("user", "Admin");
+            // Act & Assert
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+                async () => await service.GenerateTokenAsync("user", "Admin"));
         }
 
         [TestMethod]
-        [ExpectedException(typeof(InvalidOperationException))]
         public async Task GenerateTokenAsync_WithShortSecretKey_ThrowsException()
         {
             // Arrange
@@ -163,8 +162,9 @@ namespace Tests.Unit.Authentication
                 config.Object,
                 _mockLogger.Object);
 
-            // Act
-            await service.GenerateTokenAsync("user", "Admin");
+            // Act & Assert
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+                async () => await service.GenerateTokenAsync("user", "Admin"));
         }
     }
 }

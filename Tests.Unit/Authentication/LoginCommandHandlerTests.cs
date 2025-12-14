@@ -49,7 +49,6 @@ namespace Tests.Unit.Authentication
         }
 
         [TestMethod]
-        [ExpectedException(typeof(UnauthorizedAccessException))]
         public async Task Handle_WithInvalidCredentials_ThrowsUnauthorizedAccessException()
         {
             // Arrange
@@ -63,12 +62,12 @@ namespace Tests.Unit.Authentication
                 .Setup(x => x.ValidateCredentialsAsync("admin", "wrongpassword"))
                 .ReturnsAsync(false);
 
-            // Act
-            await _handler.Handle(command, CancellationToken.None);
+            // Act & Assert
+            await Assert.ThrowsExceptionAsync<UnauthorizedAccessException>(
+                async () => await _handler.Handle(command, CancellationToken.None));
         }
 
         [TestMethod]
-        [ExpectedException(typeof(UnauthorizedAccessException))]
         public async Task Handle_WithNullUsername_ThrowsUnauthorizedAccessException()
         {
             // Arrange
@@ -82,8 +81,9 @@ namespace Tests.Unit.Authentication
                 .Setup(x => x.ValidateCredentialsAsync("", "admin123"))
                 .ReturnsAsync(false);
 
-            // Act
-            await _handler.Handle(command, CancellationToken.None);
+            // Act & Assert
+            await Assert.ThrowsExceptionAsync<UnauthorizedAccessException>(
+                async () => await _handler.Handle(command, CancellationToken.None));
         }
     }
 }
