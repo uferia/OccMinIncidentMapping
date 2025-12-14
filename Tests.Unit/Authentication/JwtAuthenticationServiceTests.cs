@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Xunit;
 
 namespace Tests.Unit.Authentication
@@ -59,8 +60,18 @@ namespace Tests.Unit.Authentication
             var jwtToken = handler.ReadToken(token) as JwtSecurityToken;
             
             jwtToken.Should().NotBeNull();
-            jwtToken!.Claims.Should().Contain(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" && c.Value == "testuser");
-            jwtToken.Claims.Should().Contain(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role" && c.Value == "Admin");
+            
+            // Check for name identifier claim (can be either short or long form)
+            var hasNameIdentifier = jwtToken!.Claims.Any(c => 
+                (c.Type == ClaimTypes.NameIdentifier || c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier") 
+                && c.Value == "testuser");
+            hasNameIdentifier.Should().BeTrue();
+            
+            // Check for role claim (can be either short or long form)
+            var hasRole = jwtToken.Claims.Any(c => 
+                (c.Type == ClaimTypes.Role || c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role") 
+                && c.Value == "Admin");
+            hasRole.Should().BeTrue();
         }
 
         [Fact]
