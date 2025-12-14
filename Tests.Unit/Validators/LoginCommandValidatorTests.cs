@@ -1,20 +1,22 @@
 using Application.Validators.Auth;
 using Core.Features.Auth.Commands;
 using FluentAssertions;
-using Xunit;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Tests.Unit.Validators
 {
+    [TestClass]
     public class LoginCommandValidatorTests
     {
-        private readonly LoginCommandValidator _validator;
+        private LoginCommandValidator _validator;
 
-        public LoginCommandValidatorTests()
+        [TestInitialize]
+        public void Setup()
         {
             _validator = new LoginCommandValidator();
         }
 
-        [Fact]
+        [TestMethod]
         public async Task Validate_WithValidCredentials_ReturnsNoErrors()
         {
             // Arrange
@@ -32,10 +34,10 @@ namespace Tests.Unit.Validators
             result.Errors.Should().BeEmpty();
         }
 
-        [Theory]
-        [InlineData("")]
-        [InlineData(null)]
-        public async Task Validate_WithEmptyUsername_ReturnsError(string? username)
+        [TestMethod]
+        [DataRow("")]
+        [DataRow(null)]
+        public async Task Validate_WithEmptyUsername_ReturnsError(string username)
         {
             // Arrange
             var command = new LoginCommand
@@ -52,7 +54,7 @@ namespace Tests.Unit.Validators
             result.Errors.Should().Contain(e => e.PropertyName == "Username");
         }
 
-        [Fact]
+        [TestMethod]
         public async Task Validate_WithUsernameTooShort_ReturnsError()
         {
             // Arrange
@@ -70,7 +72,7 @@ namespace Tests.Unit.Validators
             result.Errors.Should().Contain(e => e.PropertyName == "Username");
         }
 
-        [Fact]
+        [TestMethod]
         public async Task Validate_WithUsernameTooLong_ReturnsError()
         {
             // Arrange
@@ -88,10 +90,10 @@ namespace Tests.Unit.Validators
             result.Errors.Should().Contain(e => e.PropertyName == "Username");
         }
 
-        [Theory]
-        [InlineData("")]
-        [InlineData(null)]
-        public async Task Validate_WithEmptyPassword_ReturnsError(string? password)
+        [TestMethod]
+        [DataRow("")]
+        [DataRow(null)]
+        public async Task Validate_WithEmptyPassword_ReturnsError(string password)
         {
             // Arrange
             var command = new LoginCommand
@@ -108,7 +110,7 @@ namespace Tests.Unit.Validators
             result.Errors.Should().Contain(e => e.PropertyName == "Password");
         }
 
-        [Fact]
+        [TestMethod]
         public async Task Validate_WithPasswordTooShort_ReturnsError()
         {
             // Arrange
@@ -126,7 +128,7 @@ namespace Tests.Unit.Validators
             result.Errors.Should().Contain(e => e.PropertyName == "Password");
         }
 
-        [Fact]
+        [TestMethod]
         public async Task Validate_WithBoundaryUsername_IsValid()
         {
             // Arrange
@@ -143,7 +145,7 @@ namespace Tests.Unit.Validators
             result.IsValid.Should().BeTrue();
         }
 
-        [Fact]
+        [TestMethod]
         public async Task Validate_WithBoundaryPassword_IsValid()
         {
             // Arrange

@@ -2,20 +2,22 @@ using Application.Validators;
 using Core.Enums;
 using Core.Features.Incidents.Commands;
 using FluentAssertions;
-using Xunit;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Tests.Unit.Validators
 {
+    [TestClass]
     public class CreateIncidentCommandValidatorTests
     {
-        private readonly CreateIncidentCommandValidator _validator;
+        private CreateIncidentCommandValidator _validator;
 
-        public CreateIncidentCommandValidatorTests()
+        [TestInitialize]
+        public void Setup()
         {
             _validator = new CreateIncidentCommandValidator();
         }
 
-        [Fact]
+        [TestMethod]
         public async Task Validate_WithValidCommand_ReturnsNoErrors()
         {
             // Arrange
@@ -36,9 +38,9 @@ namespace Tests.Unit.Validators
             result.Errors.Should().BeEmpty();
         }
 
-        [Theory]
-        [InlineData(-91)]
-        [InlineData(91)]
+        [TestMethod]
+        [DataRow(-91)]
+        [DataRow(91)]
         public async Task Validate_WithInvalidLatitude_ReturnsError(double latitude)
         {
             // Arrange
@@ -59,9 +61,9 @@ namespace Tests.Unit.Validators
             result.Errors.Should().Contain(e => e.PropertyName == "Latitude");
         }
 
-        [Theory]
-        [InlineData(-181)]
-        [InlineData(181)]
+        [TestMethod]
+        [DataRow(-181)]
+        [DataRow(181)]
         public async Task Validate_WithInvalidLongitude_ReturnsError(double longitude)
         {
             // Arrange
@@ -82,7 +84,7 @@ namespace Tests.Unit.Validators
             result.Errors.Should().Contain(e => e.PropertyName == "Longitude");
         }
 
-        [Fact]
+        [TestMethod]
         public async Task Validate_WithDescriptionExceedingLimit_ReturnsError()
         {
             // Arrange
@@ -103,7 +105,7 @@ namespace Tests.Unit.Validators
             result.Errors.Should().Contain(e => e.PropertyName == "Description");
         }
 
-        [Fact]
+        [TestMethod]
         public async Task Validate_WithBoundaryLatitude_IsValid()
         {
             // Arrange
@@ -123,7 +125,7 @@ namespace Tests.Unit.Validators
             result.IsValid.Should().BeTrue();
         }
 
-        [Fact]
+        [TestMethod]
         public async Task Validate_WithBoundaryLongitude_IsValid()
         {
             // Arrange
@@ -143,7 +145,7 @@ namespace Tests.Unit.Validators
             result.IsValid.Should().BeTrue();
         }
 
-        [Fact]
+        [TestMethod]
         public async Task Validate_WithMaxDescriptionLength_IsValid()
         {
             // Arrange

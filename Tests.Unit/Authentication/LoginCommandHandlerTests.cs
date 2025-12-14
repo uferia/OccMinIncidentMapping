@@ -1,23 +1,25 @@
 using Core.Features.Auth.Commands;
 using Core.Interfaces;
 using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using Xunit;
 
 namespace Tests.Unit.Authentication
 {
+    [TestClass]
     public class LoginCommandHandlerTests
     {
-        private readonly Mock<IAuthenticationService> _mockAuthService;
-        private readonly LoginCommandHandler _handler;
+        private Mock<IAuthenticationService> _mockAuthService;
+        private LoginCommandHandler _handler;
 
-        public LoginCommandHandlerTests()
+        [TestInitialize]
+        public void Setup()
         {
             _mockAuthService = new Mock<IAuthenticationService>();
             _handler = new LoginCommandHandler(_mockAuthService.Object);
         }
 
-        [Fact]
+        [TestMethod]
         public async Task Handle_WithValidCredentials_ReturnsTokenAndRole()
         {
             // Arrange
@@ -46,7 +48,8 @@ namespace Tests.Unit.Authentication
             _mockAuthService.Verify(x => x.GenerateTokenAsync("admin", "Admin"), Times.Once);
         }
 
-        [Fact]
+        [TestMethod]
+        [ExpectedException(typeof(UnauthorizedAccessException))]
         public async Task Handle_WithInvalidCredentials_ThrowsUnauthorizedAccessException()
         {
             // Arrange
@@ -60,13 +63,12 @@ namespace Tests.Unit.Authentication
                 .Setup(x => x.ValidateCredentialsAsync("admin", "wrongpassword"))
                 .ReturnsAsync(false);
 
-            // Act & Assert
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(
-                () => _handler.Handle(command, CancellationToken.None)
-            );
+            // Act
+            await _handler.Handle(command, CancellationToken.None);
         }
 
-        [Fact]
+        [TestMethod]
+        [ExpectedException(typeof(UnauthorizedAccessException))]
         public async Task Handle_WithNullUsername_ThrowsUnauthorizedAccessException()
         {
             // Arrange
@@ -80,10 +82,8 @@ namespace Tests.Unit.Authentication
                 .Setup(x => x.ValidateCredentialsAsync("", "admin123"))
                 .ReturnsAsync(false);
 
-            // Act & Assert
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(
-                () => _handler.Handle(command, CancellationToken.None)
-            );
+            // Act
+            await _handler.Handle(command, CancellationToken.None);
         }
     }
 }

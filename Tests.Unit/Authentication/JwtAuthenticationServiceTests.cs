@@ -2,21 +2,23 @@ using FluentAssertions;
 using Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using Xunit;
 
 namespace Tests.Unit.Authentication
 {
+    [TestClass]
     public class JwtAuthenticationServiceTests
     {
-        private readonly Mock<IConfiguration> _mockConfig;
-        private readonly Mock<IPasswordHasher> _mockPasswordHasher;
-        private readonly Mock<ILogger<JwtAuthenticationService>> _mockLogger;
-        private readonly JwtAuthenticationService _service;
+        private Mock<IConfiguration> _mockConfig;
+        private Mock<IPasswordHasher> _mockPasswordHasher;
+        private Mock<ILogger<JwtAuthenticationService>> _mockLogger;
+        private JwtAuthenticationService _service;
 
-        public JwtAuthenticationServiceTests()
+        [TestInitialize]
+        public void Setup()
         {
             _mockConfig = new Mock<IConfiguration>();
             _mockPasswordHasher = new Mock<IPasswordHasher>();
@@ -45,7 +47,7 @@ namespace Tests.Unit.Authentication
                 .Returns("60");
         }
 
-        [Fact]
+        [TestMethod]
         public async Task GenerateTokenAsync_WithValidCredentials_ReturnsValidToken()
         {
             // Act
@@ -74,7 +76,7 @@ namespace Tests.Unit.Authentication
             hasRole.Should().BeTrue();
         }
 
-        [Fact]
+        [TestMethod]
         public async Task GenerateTokenAsync_TokenHasCorrectExpiration()
         {
             // Act
@@ -88,7 +90,7 @@ namespace Tests.Unit.Authentication
             jwtToken.ValidTo.Should().BeBefore(DateTime.UtcNow.AddMinutes(70)); // 60 + buffer
         }
 
-        [Fact]
+        [TestMethod]
         public async Task GenerateTokenAsync_TokenHasUniqueJti()
         {
             // Act
@@ -108,7 +110,7 @@ namespace Tests.Unit.Authentication
             jti1.Should().NotBe(jti2);
         }
 
-        [Fact]
+        [TestMethod]
         public async Task ValidateCredentialsAsync_WithValidCredentials_ReturnsTrue()
         {
             // Act
@@ -118,7 +120,7 @@ namespace Tests.Unit.Authentication
             result.Should().BeTrue();
         }
 
-        [Fact]
+        [TestMethod]
         public async Task ValidateCredentialsAsync_WithInvalidPassword_ReturnsFalse()
         {
             // Act
@@ -128,7 +130,7 @@ namespace Tests.Unit.Authentication
             result.Should().BeFalse();
         }
 
-        [Fact]
+        [TestMethod]
         public async Task ValidateCredentialsAsync_WithInvalidUsername_ReturnsFalse()
         {
             // Act
@@ -138,7 +140,8 @@ namespace Tests.Unit.Authentication
             result.Should().BeFalse();
         }
 
-        [Fact]
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
         public async Task GenerateTokenAsync_WithMissingSecretKey_ThrowsException()
         {
             // Arrange
@@ -149,13 +152,12 @@ namespace Tests.Unit.Authentication
                 _mockPasswordHasher.Object,
                 _mockLogger.Object);
 
-            // Act & Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(
-                () => service.GenerateTokenAsync("user", "Admin")
-            );
+            // Act
+            await service.GenerateTokenAsync("user", "Admin");
         }
 
-        [Fact]
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
         public async Task GenerateTokenAsync_WithShortSecretKey_ThrowsException()
         {
             // Arrange
@@ -166,10 +168,8 @@ namespace Tests.Unit.Authentication
                 _mockPasswordHasher.Object,
                 _mockLogger.Object);
 
-            // Act & Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(
-                () => service.GenerateTokenAsync("user", "Admin")
-            );
+            // Act
+            await service.GenerateTokenAsync("user", "Admin");
         }
     }
 }
