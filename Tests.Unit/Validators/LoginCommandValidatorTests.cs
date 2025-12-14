@@ -150,7 +150,7 @@ namespace Tests.Unit.Validators
             var command = new LoginCommand
             {
                 Username = "validuser",
-                Password = "123456" // Exactly 6 characters (minimum)
+                Password = "12345678" // Exactly 6 characters (minimum)
             };
 
             // Act
