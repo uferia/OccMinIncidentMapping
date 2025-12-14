@@ -21,10 +21,11 @@ namespace Core.Features.Incidents.Commands
                 Longitude = request.Longitude,
                 Hazard = request.Hazard,
                 Status = request.Status,
-                Description = request.Description
+                Description = request.Description ?? string.Empty
             };
 
             await _context.Incidents.AddAsync(incident);
+            await _context.SaveChangesAsync(cancellationToken);
             return incident.Id;
         }
     }

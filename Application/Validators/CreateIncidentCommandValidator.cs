@@ -22,6 +22,10 @@ namespace Application.Validators
             RuleFor(x => x.Status)
                 .IsInEnum()
                 .WithMessage("Invalid status value");
+
+            RuleFor(x => x.Description)
+                .MaximumLength(500)
+                .WithMessage("Description cannot exceed 500 characters");
         }
     }
 }

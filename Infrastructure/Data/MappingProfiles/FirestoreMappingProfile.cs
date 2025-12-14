@@ -20,32 +20,23 @@ namespace Infrastructure.Data.MappingProfiles
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => ParseStatus(src.Status)));
         }
 
-        private static HazardType ParseHazard(string value)
+        private static HazardType ParseHazard(string? value)
         {
-            if (string.IsNullOrWhiteSpace(value)) return HazardType.Flood;
-
-            try
-            {
-                return (HazardType)Enum.Parse(typeof(HazardType), value, true);
-            }
-            catch
-            {
+            if (string.IsNullOrWhiteSpace(value))
                 return HazardType.Flood;
-            }
+
+            return Enum.TryParse<HazardType>(value, ignoreCase: true, out var result)
+                ? result
+                : HazardType.Flood;
         }
 
-        private static StatusType ParseStatus(string value)
+        private static StatusType ParseStatus(string? value)
         {
             if (string.IsNullOrWhiteSpace(value)) return StatusType.Ongoing;
 
-            try
-            {
-                return (StatusType)Enum.Parse(typeof(StatusType), value, true);
-            }
-            catch
-            {
-                return StatusType.Ongoing;
-            }
+            return Enum.TryParse<StatusType>(value, ignoreCase: true, out var result)
+                ? result
+                : StatusType.Ongoing;
         }
     }
 }
