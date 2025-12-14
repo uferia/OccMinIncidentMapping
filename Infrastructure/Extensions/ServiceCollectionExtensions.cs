@@ -2,6 +2,7 @@
 using Google.Cloud.Firestore;
 using Infrastructure.Data;
 using Infrastructure.Data.MappingProfiles;
+using Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -27,6 +28,10 @@ namespace Infrastructure.Extensions
             // Register repositories and context
             services.AddScoped<IIncidentRepository, FirebaseIncidentRepository>();
             services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
+
+            // Register authentication services
+            services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
+            services.AddScoped<IAuthenticationService, JwtAuthenticationService>();
 
             return services;
         }
