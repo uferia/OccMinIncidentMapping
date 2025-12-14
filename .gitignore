@@ -5,6 +5,15 @@
 
 # dotenv files
 .env
+.env.local
+.env.*.local
+
+# Firebase and credential files
+firebase.json
+*.serviceaccount.json
+google-service-account.json
+credentials.json
+private_key.pem
 
 # User-specific files
 *.rsuser

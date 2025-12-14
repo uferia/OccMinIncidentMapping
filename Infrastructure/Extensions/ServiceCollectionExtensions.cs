@@ -14,8 +14,36 @@ namespace Infrastructure.Extensions
             this IServiceCollection services,
             IConfiguration configuration)
         {
-            // Set Firebase credentials path
-            string credentialsPath = Path.Combine(Directory.GetCurrentDirectory(), "firebase.json");
+            // Set Firebase credentials - prefer environment variable, fallback to file
+            string? credentialsPath = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+            
+            if (string.IsNullOrEmpty(credentialsPath))
+            {
+                // Check if firebase.json exists in current directory (development only)
+                string localFirebaseJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "firebase.json");
+                if (File.Exists(localFirebaseJsonPath))
+                {
+                    credentialsPath = localFirebaseJsonPath;
+                }
+                else
+                {
+                    // Try to load credentials from environment variable in JSON format
+                    string? credentialsJson = Environment.GetEnvironmentVariable("FIREBASE_CREDENTIALS_JSON");
+                    if (!string.IsNullOrEmpty(credentialsJson))
+                    {
+                        // Write JSON to a temporary file
+                        string tempPath = Path.Combine(Path.GetTempPath(), $"firebase-{Guid.NewGuid()}.json");
+                        File.WriteAllText(tempPath, credentialsJson);
+                        credentialsPath = tempPath;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException(
+                            "Firebase credentials not found. Set GOOGLE_APPLICATION_CREDENTIALS environment variable or FIREBASE_CREDENTIALS_JSON.");
+                    }
+                }
+            }
+
             Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", credentialsPath);
 
             // Initialize Firestore
