@@ -4,40 +4,13 @@ using Core.Features.Auth.Commands;
 using Core.Features.Incidents.Commands;
 using Infrastructure.Extensions;
 using MediatR;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using OccMinIncidentMapping.Extensions;
 using OccMinIncidentMapping.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("Jwt");
-var secretKey = jwtSettings["SecretKey"];
-
-if (string.IsNullOrEmpty(secretKey))
-    throw new InvalidOperationException("JWT SecretKey is not configured");
-
-var key = Encoding.ASCII.GetBytes(secretKey);
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidateAudience = true,
-        ValidAudience = jwtSettings["Audience"],
-        ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero
-    };
-});
+// Add secure JWT authentication (secrets from environment variables, not config files)
+builder.Services.AddSecureJwtAuthentication(builder.Configuration);
 
 builder.Services.AddAuthorization();
 

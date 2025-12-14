@@ -11,7 +11,7 @@ namespace Infrastructure.Services
 
     public class Pbkdf2PasswordHasher : IPasswordHasher
     {
-        private const int Iterations = 10000;
+        private const int Iterations = 100000;
         private const int SaltSize = 32;
         private const int HashSize = 32;
         private const char Delimiter = ':';
@@ -21,18 +21,15 @@ namespace Infrastructure.Services
             if (string.IsNullOrEmpty(password))
                 throw new ArgumentException("Password cannot be null or empty", nameof(password));
 
-            using (var rng = new RNGCryptoServiceProvider())
-            {
-                var salt = new byte[SaltSize];
-                rng.GetBytes(salt);
+            var salt = new byte[SaltSize];
+            RandomNumberGenerator.Fill(salt);
 
-                using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA256))
-                {
-                    var hash = pbkdf2.GetBytes(HashSize);
-                    var hashString = Convert.ToBase64String(hash);
-                    var saltString = Convert.ToBase64String(salt);
-                    return $"{Iterations}{Delimiter}{saltString}{Delimiter}{hashString}";
-                }
+            using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA256))
+            {
+                var hash = pbkdf2.GetBytes(HashSize);
+                var hashString = Convert.ToBase64String(hash);
+                var saltString = Convert.ToBase64String(salt);
+                return $"{Iterations}{Delimiter}{saltString}{Delimiter}{hashString}";
             }
         }
 

@@ -29,7 +29,7 @@ namespace Infrastructure.Services
         {
             try
             {
-                var key = _configuration["Jwt:SecretKey"];
+                var key = GetSecureJwtSecret();
                 var issuer = _configuration["Jwt:Issuer"];
                 var audience = _configuration["Jwt:Audience"];
                 var expiryMinutesStr = _configuration["Jwt:ExpiryMinutes"] ?? "60";
@@ -117,6 +117,38 @@ namespace Infrastructure.Services
                 _logger.LogError(ex, "Error validating credentials");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Retrieves JWT secret from secure sources in order of preference:
+        /// 1. Environment variable: JWT_SECRET_KEY
+        /// 2. Configuration (user secrets in development)
+        /// </summary>
+        private string GetSecureJwtSecret()
+        {
+            // First, try to get from environment variable (recommended for production)
+            var envSecret = Environment.GetEnvironmentVariable("JWT_SECRET_KEY");
+            if (!string.IsNullOrEmpty(envSecret))
+                return envSecret;
+
+            // Fall back to configuration (for development/testing only)
+            var configSecret = _configuration["Jwt:SecretKey"];
+            if (!string.IsNullOrEmpty(configSecret) && !IsPlaceholderKey(configSecret))
+                return configSecret;
+
+            throw new InvalidOperationException(
+                "JWT SecretKey not found. Please set the 'JWT_SECRET_KEY' environment variable.");
+        }
+
+        /// <summary>
+        /// Checks if the key is a placeholder value from configuration files.
+        /// </summary>
+        private static bool IsPlaceholderKey(string key)
+        {
+            return key.Contains("your-super-secret") ||
+                   key.Contains("placeholder") ||
+                   key.Contains("change-me") ||
+                   key.Contains("example");
         }
 
         /// <summary>
