@@ -21,8 +21,7 @@ namespace Infrastructure.Services
             if (string.IsNullOrEmpty(password))
                 throw new ArgumentException("Password cannot be null or empty", nameof(password));
 
-            var salt = new byte[SaltSize];
-            RandomNumberGenerator.Fill(salt);
+            var salt = RandomNumberGenerator.GetBytes(SaltSize);
 
             using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA256))
             {

@@ -11,17 +11,14 @@ namespace Infrastructure.Services
     public class JwtAuthenticationService : IAuthenticationService
     {
         private readonly IConfiguration _configuration;
-        private readonly IPasswordHasher _passwordHasher;
         private readonly ILogger<JwtAuthenticationService> _logger;
         private const int MinKeyLength = 32;
 
         public JwtAuthenticationService(
             IConfiguration configuration,
-            IPasswordHasher passwordHasher,
             ILogger<JwtAuthenticationService> logger)
         {
             _configuration = configuration;
-            _passwordHasher = passwordHasher;
             _logger = logger;
         }
 

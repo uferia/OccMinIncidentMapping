@@ -13,7 +13,6 @@ namespace Tests.Unit.Authentication
     public class JwtAuthenticationServiceTests
     {
         private Mock<IConfiguration> _mockConfig;
-        private Mock<IPasswordHasher> _mockPasswordHasher;
         private Mock<ILogger<JwtAuthenticationService>> _mockLogger;
         private JwtAuthenticationService _service;
 
@@ -21,13 +20,11 @@ namespace Tests.Unit.Authentication
         public void Setup()
         {
             _mockConfig = new Mock<IConfiguration>();
-            _mockPasswordHasher = new Mock<IPasswordHasher>();
             _mockLogger = new Mock<ILogger<JwtAuthenticationService>>();
             
             SetupDefaultConfig();
             _service = new JwtAuthenticationService(
                 _mockConfig.Object,
-                _mockPasswordHasher.Object,
                 _mockLogger.Object);
         }
 
@@ -149,7 +146,6 @@ namespace Tests.Unit.Authentication
             config.Setup(x => x["Jwt:SecretKey"]).Returns((string?)null);
             var service = new JwtAuthenticationService(
                 config.Object,
-                _mockPasswordHasher.Object,
                 _mockLogger.Object);
 
             // Act
@@ -165,7 +161,6 @@ namespace Tests.Unit.Authentication
             config.Setup(x => x["Jwt:SecretKey"]).Returns("tooshort");
             var service = new JwtAuthenticationService(
                 config.Object,
-                _mockPasswordHasher.Object,
                 _mockLogger.Object);
 
             // Act
