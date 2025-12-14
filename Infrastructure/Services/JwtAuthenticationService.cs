@@ -71,9 +71,21 @@ namespace Infrastructure.Services
                 _logger.LogInformation("Token generated successfully for user: {Username}", username);
                 return await Task.FromResult(tokenString);
             }
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "Invalid argument while generating token for user: {Username}. Message: {Message}", 
+                    username, ex.Message);
+                throw new InvalidOperationException("Token generation failed due to invalid configuration", ex);
+            }
+            catch (SecurityTokenException ex)
+            {
+                _logger.LogError(ex, "Security token exception while generating token for user: {Username}", username);
+                throw new InvalidOperationException("Failed to generate secure token", ex);
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error generating JWT token");
+                _logger.LogError(ex, "Unexpected error generating JWT token for user: {Username}. Exception type: {ExceptionType}", 
+                    username, ex.GetType().Name);
                 throw;
             }
         }
