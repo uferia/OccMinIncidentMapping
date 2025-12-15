@@ -38,13 +38,41 @@ namespace Infrastructure.Extensions
                     }
                     else
                     {
-                        throw new InvalidOperationException(
-                            "Firebase credentials not found. Set GOOGLE_APPLICATION_CREDENTIALS environment variable or FIREBASE_CREDENTIALS_JSON.");
+                        // Try to load from configuration (loaded from GCP Secret Manager)
+                        // Secret name: firebase-credentials-occminproj -> FirebaseCredentialsOccminproj
+                        string? credentialsFromConfig = configuration["FirebaseCredentialsOccminproj"];
+                        if (!string.IsNullOrEmpty(credentialsFromConfig))
+                        {
+                            // Write the credentials to a temporary file
+                            string tempPath = Path.Combine(Path.GetTempPath(), $"firebase-{Guid.NewGuid()}.json");
+                            File.WriteAllText(tempPath, credentialsFromConfig);
+                            credentialsPath = tempPath;
+                        }
+                        else
+                        {
+                            // For GCP environments, use Application Default Credentials (ADC)
+                            // This works with Cloud Run, Compute Engine, and other GCP services
+                            // No explicit credentials file needed
+                            credentialsPath = null;
+                            
+                            // Only throw if not in a GCP environment with ADC
+                            if (!IsGcpEnvironmentWithAdc())
+                            {
+                                throw new InvalidOperationException(
+                                    "Firebase credentials not found. Set GOOGLE_APPLICATION_CREDENTIALS environment variable, " +
+                                    "FIREBASE_CREDENTIALS_JSON, or ensure firebase-credentials-occminproj secret is available in GCP Secret Manager, " +
+                                    "or ensure Application Default Credentials (ADC) are configured for GCP.");
+                            }
+                        }
                     }
                 }
             }
 
-            Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", credentialsPath);
+            // Set environment variable if we have a credentials path
+            if (!string.IsNullOrEmpty(credentialsPath))
+            {
+                Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", credentialsPath);
+            }
 
             // Initialize Firestore
             var firestore = FirestoreDb.Create(configuration["Firebase:ProjectId"]);
@@ -60,8 +88,52 @@ namespace Infrastructure.Extensions
             // Register authentication services
             services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
             services.AddScoped<IAuthenticationService, JwtAuthenticationService>();
+            services.AddScoped<IGoogleAuthenticationService, GoogleAuthenticationService>();
 
             return services;
+        }
+
+        /// <summary>
+        /// Checks if the application is running in a GCP environment with Application Default Credentials.
+        /// </summary>
+        private static bool IsGcpEnvironmentWithAdc()
+        {
+            // Check for common GCP environment indicators
+            var gcpProject = Environment.GetEnvironmentVariable("GCP_PROJECT_ID") ?? 
+                            Environment.GetEnvironmentVariable("GOOGLE_CLOUD_PROJECT");
+            
+            // Cloud Run sets GOOGLE_CLOUD_RUN_EXECUTION
+            var cloudRunExecution = Environment.GetEnvironmentVariable("GOOGLE_CLOUD_RUN_EXECUTION");
+            
+            // App Engine sets GAE_INSTANCE
+            var appEngineInstance = Environment.GetEnvironmentVariable("GAE_INSTANCE");
+            
+            // Compute Engine has metadata server
+            var hasMetadataServer = HasGcpMetadataServer();
+
+            return !string.IsNullOrEmpty(gcpProject) ||
+                   !string.IsNullOrEmpty(cloudRunExecution) ||
+                   !string.IsNullOrEmpty(appEngineInstance) ||
+                   hasMetadataServer;
+        }
+
+        /// <summary>
+        /// Checks if GCP metadata server is available (indicates running on GCP compute).
+        /// </summary>
+        private static bool HasGcpMetadataServer()
+        {
+            try
+            {
+                using (var client = new HttpClient { Timeout = TimeSpan.FromSeconds(1) })
+                {
+                    var response = client.GetAsync("http://metadata.google.internal/computeMetadata/v1/instance/id").Result;
+                    return response.IsSuccessStatusCode;
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

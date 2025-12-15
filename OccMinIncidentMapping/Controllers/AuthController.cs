@@ -95,6 +95,73 @@ namespace OccMinIncidentMapping.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Google SSO endpoint - Authenticates user with Google ID token and returns JWT token
+        /// </summary>
+        /// <param name="request">Google SSO request containing ID token</param>
+        /// <returns>Access token with metadata</returns>
+        /// <response code="200">Authentication successful</response>
+        /// <response code="400">Invalid token format or validation failed</response>
+        /// <response code="401">Invalid or expired Google ID token</response>
+        [HttpPost("google-sso")]
+        [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GoogleSso([FromBody] GoogleSsoRequest request)
+        {
+            if (!ModelState.IsValid || string.IsNullOrEmpty(request.IdToken))
+            {
+                return BadRequest(new ErrorResponse
+                {
+                    Error = "invalid_request",
+                    ErrorDescription = "Google ID token is required",
+                    Details = new List<string> { "Please provide a valid Google ID token" }
+                });
+            }
+
+            try
+            {
+                var (token, role) = await _mediator.Send(new GoogleSsoCommand
+                {
+                    IdToken = request.IdToken
+                });
+
+                var expiryMinutes = int.TryParse(
+                    _configuration["Jwt:ExpiryMinutes"],
+                    out var expiry) ? expiry : 60;
+
+                var response = new LoginResponse
+                {
+                    AccessToken = token,
+                    TokenType = "Bearer",
+                    ExpiresIn = expiryMinutes * 60, // Convert to seconds
+                    Username = "", // Email is stored in token claims
+                    Role = role
+                };
+
+                _logger.LogInformation("User authenticated successfully via Google SSO");
+                return Ok(response);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning("Failed Google SSO authentication: {Message}", ex.Message);
+                return Unauthorized(new ErrorResponse
+                {
+                    Error = "invalid_token",
+                    ErrorDescription = "Invalid or expired Google ID token"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during Google SSO authentication");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ErrorResponse
+                {
+                    Error = "server_error",
+                    ErrorDescription = "An unexpected error occurred during authentication"
+                });
+            }
+        }
     }
 
     /// <summary>
