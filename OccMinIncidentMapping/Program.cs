@@ -9,8 +9,26 @@ using OccMinIncidentMapping.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add secure JWT authentication (secrets from environment variables, not config files)
-builder.Services.AddSecureJwtAuthentication(builder.Configuration);
+// Configure Google Cloud Secret Manager for production/GCP environments
+if (!builder.Environment.IsDevelopment())
+{
+    var projectId = Environment.GetEnvironmentVariable("GCP_PROJECT_ID");
+    if (!string.IsNullOrEmpty(projectId))
+    {
+        // Specify the exact secrets to load from GCP Secret Manager
+        var secretNames = new[]
+        {
+            "jwt-signing-key",      // Maps to Jwt:SigningKey
+            "Firebase-ProjectId",
+            "Firebase-PrivateKey",
+            "Firebase-ClientEmail"
+        };
+        builder.Configuration.AddGoogleCloudSecrets(projectId, secretNames);
+    }
+}
+
+// Add secure JWT authentication (secrets from environment variables, user secrets, or GCP Secret Manager)
+builder.Services.AddSecureJwtAuthentication(builder.Configuration, builder.Environment);
 
 builder.Services.AddAuthorization();
 
@@ -48,7 +66,34 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    // Add JWT Bearer authentication to Swagger
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\""
+    });
+
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] { }
+        }
+    });
+});
 
 // Configure CORS
 builder.Services.AddCors(options =>
