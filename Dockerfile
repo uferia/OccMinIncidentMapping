@@ -15,8 +15,12 @@ COPY ["Contracts/Contracts.csproj", "Contracts/"]
 # Restore dependencies
 RUN dotnet restore "OccMinIncidentMapping/OccMinIncidentMapping.csproj"
 
-# Copy remaining source code
-COPY . .
+# Copy source code (explicit copy only necessary directories)
+COPY OccMinIncidentMapping/ OccMinIncidentMapping/
+COPY Infrastructure/ Infrastructure/
+COPY Application/ Application/
+COPY Core/ Core/
+COPY Contracts/ Contracts/
 
 # Build application
 RUN dotnet build "OccMinIncidentMapping/OccMinIncidentMapping.csproj" -c Release -o /app/build

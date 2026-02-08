@@ -9,7 +9,7 @@ namespace Infrastructure.Constants
         /// GCP metadata server URL for retrieving instance metadata.
         /// Used to detect if the application is running on GCP Compute Engine.
         /// </summary>
-        public const string MetadataServerUrl = "http://metadata.google.internal/computeMetadata/v1/instance/id";
+        public const string MetadataServerUrl = "https://metadata.google.internal/computeMetadata/v1/instance/id";
 
         /// <summary>
         /// Metadata server connection timeout in seconds.
