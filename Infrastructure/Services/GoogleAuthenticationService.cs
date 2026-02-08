@@ -10,7 +10,6 @@ namespace Infrastructure.Services
     /// </summary>
     public class GoogleAuthenticationService : IGoogleAuthenticationService
     {
-        private readonly IConfiguration _configuration;
         private readonly ILogger<GoogleAuthenticationService> _logger;
         private readonly string _googleClientId;
 
@@ -18,7 +17,6 @@ namespace Infrastructure.Services
             IConfiguration configuration,
             ILogger<GoogleAuthenticationService> logger)
         {
-            _configuration = configuration;
             _logger = logger;
             _googleClientId = configuration["Google:ClientId"] ?? string.Empty;
 
