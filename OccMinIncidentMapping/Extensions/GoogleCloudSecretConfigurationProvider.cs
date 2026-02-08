@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Infrastructure.Services;
 
 namespace OccMinIncidentMapping.Extensions
 {
@@ -104,26 +105,7 @@ namespace OccMinIncidentMapping.Extensions
                 response.EnsureSuccessStatusCode();
 
                 var content = await response.Content.ReadAsStringAsync();
-                
-                // Parse JSON response to extract the secret value
-                // Response format: { "payload": { "data": "base64-encoded-secret" } }
-                using (JsonDocument doc = JsonDocument.Parse(content))
-                {
-                    var root = doc.RootElement;
-                    
-                    if (root.TryGetProperty("payload", out var payloadElement) &&
-                        payloadElement.TryGetProperty("data", out var dataElement))
-                    {
-                        var base64Secret = dataElement.GetString();
-                        if (!string.IsNullOrEmpty(base64Secret))
-                        {
-                            var decodedBytes = Convert.FromBase64String(base64Secret);
-                            return System.Text.Encoding.UTF8.GetString(decodedBytes);
-                        }
-                    }
-                }
-
-                return content;
+                return GcpSecretExtractor.ExtractSecretFromJson(content);
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {

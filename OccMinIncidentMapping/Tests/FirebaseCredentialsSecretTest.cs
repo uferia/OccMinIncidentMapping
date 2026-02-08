@@ -2,6 +2,7 @@ using System;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Infrastructure.Services;
 
 namespace OccMinIncidentMapping.Tests
 {
@@ -33,49 +34,26 @@ namespace OccMinIncidentMapping.Tests
                 }
 
                 // Verify it's valid JSON
-                try
-                {
-                    using (JsonDocument.Parse(secret))
-                    {
-                        Console.ForegroundColor = ConsoleColor.Green;
-                        Console.WriteLine("? SUCCESS: Secret retrieved and is valid JSON!");
-                        Console.ResetColor();
-                        
-                        Console.WriteLine("\nSecret Preview (first 100 chars):");
-                        Console.WriteLine(secret.Substring(0, Math.Min(100, secret.Length)) + "...\n");
-                        
-                        // Parse and show key fields
-                        using (JsonDocument doc = JsonDocument.Parse(secret))
-                        {
-                            var root = doc.RootElement;
-                            
-                            if (root.TryGetProperty("project_id", out var projectIdElement))
-                            {
-                                Console.WriteLine($"Firebase Project ID: {projectIdElement.GetString()}");
-                            }
-                            
-                            if (root.TryGetProperty("client_email", out var emailElement))
-                            {
-                                Console.WriteLine($"Service Account Email: {emailElement.GetString()}");
-                            }
-                            
-                            if (root.TryGetProperty("type", out var typeElement))
-                            {
-                                Console.WriteLine($"Key Type: {typeElement.GetString()}");
-                            }
-                        }
-                        
-                        Console.WriteLine("\n? All checks passed!");
-                    }
-                }
-                catch (JsonException ex)
+                if (!GcpSecretExtractor.IsValidJson(secret))
                 {
                     Console.ForegroundColor = ConsoleColor.Yellow;
                     Console.WriteLine("?? WARNING: Secret retrieved but is NOT valid JSON");
                     Console.ResetColor();
-                    Console.WriteLine($"Error: {ex.Message}");
                     Console.WriteLine($"Secret content: {secret}\n");
+                    return;
                 }
+
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("? SUCCESS: Secret retrieved and is valid JSON!");
+                Console.ResetColor();
+                
+                Console.WriteLine("\nSecret Preview (first 100 chars):");
+                Console.WriteLine(secret.Substring(0, Math.Min(100, secret.Length)) + "...\n");
+                
+                // Display key fields
+                GcpSecretExtractor.DisplaySecretMetadata(secret);
+                
+                Console.WriteLine("\n? All checks passed!");
             }
             catch (HttpRequestException ex)
             {
@@ -123,26 +101,7 @@ namespace OccMinIncidentMapping.Tests
                 }
 
                 var content = await response.Content.ReadAsStringAsync();
-                
-                // Parse JSON response to extract the secret value
-                // Response format: { "payload": { "data": "base64-encoded-secret" } }
-                using (JsonDocument doc = JsonDocument.Parse(content))
-                {
-                    var root = doc.RootElement;
-                    
-                    if (root.TryGetProperty("payload", out var payloadElement) &&
-                        payloadElement.TryGetProperty("data", out var dataElement))
-                    {
-                        var base64Secret = dataElement.GetString();
-                        if (!string.IsNullOrEmpty(base64Secret))
-                        {
-                            var decodedBytes = Convert.FromBase64String(base64Secret);
-                            return System.Text.Encoding.UTF8.GetString(decodedBytes);
-                        }
-                    }
-                }
-
-                return content;
+                return GcpSecretExtractor.ExtractSecretFromJson(content);
             }
         }
     }
