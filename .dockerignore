@@ -1,0 +1,101 @@
+# Git
+.git
+.gitignore
+.gitattributes
+.github
+
+# Build outputs and artifacts
+**/bin/
+**/obj/
+**/out/
+
+# IDE and Editor files
+.vs/
+.vscode/
+*.swp
+*.swo
+*~
+*.user
+*.userprefs
+*.suo
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# User secrets and local development files
+**/appsettings.Development.json
+**/appsettings.*.json
+!**/appsettings.json
+user-secrets/
+**/secrets/
+
+# Environment and configuration files
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p8
+*.pfx
+*.p12
+
+# Google Cloud and Firebase credentials
+*google*.json
+*service-account*.json
+*firebase*.json
+*gcp*.json
+credentials.json
+serviceAccountKey.json
+firebase-key.json
+.appdata/
+
+# NuGet
+.nuget/
+*.nuget.props
+*.nuget.targets
+packages/
+!.nuget/NuGet.Config
+
+# Node and frontend (if applicable)
+node_modules/
+npm-debug.log
+yarn-error.log
+dist/
+
+# Testing and coverage
+test-results/
+coverage/
+*.trx
+*.coverage
+
+# Temporary files
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+*.log
+
+# Documentation and markdown (non-essential for runtime)
+**/*.md
+docs/
+
+# Docker
+Dockerfile
+docker-compose*.yml
+
+# CI/CD
+.circleci/
+.gitlab-ci.yml
+.travis.yml
+azure-pipelines.yml
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.mdf
+*.ldf
+
+# Local user data
+LocalUserAppData/
+AppData/

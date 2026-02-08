@@ -131,7 +131,7 @@ namespace Infrastructure.Services
         /// <summary>
         /// Retrieves JWT secret from secure sources in order of preference:
         /// 1. Environment variable: JWT_SECRET_KEY
-        /// 2. Configuration (user secrets in development)
+        /// 2. Configuration: Jwt:SigningKey (from user secrets)
         /// </summary>
         private string GetSecureJwtSecret()
         {
@@ -140,13 +140,19 @@ namespace Infrastructure.Services
             if (!string.IsNullOrEmpty(envSecret))
                 return envSecret;
 
-            // Fall back to configuration (for development/testing only)
-            var configSecret = _configuration["Jwt:SecretKey"];
+            // Try Jwt:SigningKey (from user secrets in development)
+            var configSecret = _configuration["Jwt:SigningKey"];
             if (!string.IsNullOrEmpty(configSecret) && !IsPlaceholderKey(configSecret))
                 return configSecret;
 
+            // Try legacy Jwt:SecretKey (backward compatibility)
+            var legacySecret = _configuration["Jwt:SecretKey"];
+            if (!string.IsNullOrEmpty(legacySecret) && !IsPlaceholderKey(legacySecret))
+                return legacySecret;
+
+            _logger.LogError("JWT SigningKey not found in configuration. Checked: 'JWT_SECRET_KEY' environment variable, 'Jwt:SigningKey' and 'Jwt:SecretKey' configuration keys.");
             throw new InvalidOperationException(
-                "JWT SecretKey not found. Please set the 'JWT_SECRET_KEY' environment variable.");
+                "JWT SigningKey not found. Please ensure 'Jwt:SigningKey' is set in user secrets (dotnet user-secrets set \"Jwt:SigningKey\" \"<your-key>\") or set the 'JWT_SECRET_KEY' environment variable.");
         }
 
         /// <summary>

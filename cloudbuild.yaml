@@ -1,0 +1,87 @@
+# Google Cloud Build configuration for OccMinIncidentMapping
+# This file enables automated CI/CD when connected to GitHub via Cloud Build
+
+steps:
+  # Step 1: Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/occmin-app:$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/occmin-app:latest'
+      - '.'
+    waitFor: ['-']
+
+  # Step 2: Push image to Google Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/occmin-app:$SHORT_SHA'
+    waitFor: ['build-image']
+
+  # Step 3: Deploy to Cloud Run (staging/canary - no traffic)
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args:
+      - run
+      - deploy
+      - 'occmin-app'
+      - '--image=gcr.io/$PROJECT_ID/occmin-app:$SHORT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--service-account=occmin-app@$PROJECT_ID.iam.gserviceaccount.com'
+      - '--set-env-vars=GCP_PROJECT_ID=$PROJECT_ID,ASPNETCORE_ENVIRONMENT=Production'
+      - '--allow-unauthenticated'
+      - '--memory=512Mi'
+      - '--cpu=1'
+      - '--timeout=60'
+      - '--max-instances=100'
+      - '--min-instances=1'
+    id: 'deploy-cloud-run'
+    waitFor: ['push-image']
+
+  # Step 4: Run smoke tests
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'smoke-test'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-central1'
+    args:
+      - 'run'
+      - 'curl'
+      - '--restart=Never'
+      - '--image=curlimages/curl'
+      - '--'
+      - 'curl'
+      - '-f'
+      - 'https://occmin-app-<SERVICE_URL>/health'
+    waitFor: ['deploy-cloud-run']
+
+# Images to be pushed to Google Container Registry
+images:
+  - 'gcr.io/$PROJECT_ID/occmin-app:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/occmin-app:latest'
+
+# Timeout for the entire build process
+timeout: '3600s'
+
+# Build machine type (standard is sufficient for .NET builds)
+machineType: 'N1_HIGHCPU_8'
+
+# Log streaming output
+logsBucket: 'gs://${PROJECT_ID}_cloudbuild'
+
+# Substitutions for custom variables
+substitutions:
+  _REGION: 'us-central1'
+  _SERVICE_NAME: 'occmin-app'
+
+# Options
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+  
+# On-failure behavior
+onFailure:
+  - 'NOTIFY'
