@@ -122,7 +122,7 @@ namespace OccMinIncidentMapping.Controllers
 
             try
             {
-                var (token, role) = await _mediator.Send(new GoogleSsoCommand
+                var (token, email, role) = await _mediator.Send(new GoogleSsoCommand
                 {
                     IdToken = request.IdToken
                 });
@@ -136,11 +136,11 @@ namespace OccMinIncidentMapping.Controllers
                     AccessToken = token,
                     TokenType = "Bearer",
                     ExpiresIn = expiryMinutes * 60, // Convert to seconds
-                    Username = "", // Email is stored in token claims
+                    Username = email,
                     Role = role
                 };
 
-                _logger.LogInformation("User authenticated successfully via Google SSO");
+                _logger.LogInformation("User {Email} authenticated successfully via Google SSO", email);
                 return Ok(response);
             }
             catch (UnauthorizedAccessException ex)

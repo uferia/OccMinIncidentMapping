@@ -8,7 +8,7 @@ namespace Core.Features.Auth.Commands
     /// Handler for Google SSO authentication
     /// Verifies the Google ID token and generates a JWT token
     /// </summary>
-    public class GoogleSsoCommandHandler : IRequestHandler<GoogleSsoCommand, (string token, string role)>
+    public class GoogleSsoCommandHandler : IRequestHandler<GoogleSsoCommand, (string token, string email, string role)>
     {
         private readonly IAuthenticationService _authService;
         private readonly IGoogleAuthenticationService _googleAuthService;
@@ -24,7 +24,7 @@ namespace Core.Features.Auth.Commands
             _logger = logger;
         }
 
-        public async Task<(string token, string role)> Handle(
+        public async Task<(string token, string email, string role)> Handle(
             GoogleSsoCommand request,
             CancellationToken cancellationToken)
         {
@@ -32,19 +32,22 @@ namespace Core.Features.Auth.Commands
             {
                 if (string.IsNullOrEmpty(request.IdToken))
                 {
+                    _logger.LogWarning("? Google SSO failed: ID token is empty or null");
                     throw new ArgumentException("ID token is required");
                 }
+
+                _logger.LogInformation("?? Attempting to verify Google ID token...");
 
                 // Verify Google ID token and get user information
                 var googleUser = await _googleAuthService.VerifyIdTokenAsync(request.IdToken);
 
                 if (googleUser == null)
                 {
-                    _logger.LogWarning("Invalid or expired Google ID token");
+                    _logger.LogWarning("? Google ID token verification failed. Token may be invalid, expired, or issued for a different Google Client ID.");
                     throw new UnauthorizedAccessException("Invalid Google ID token");
                 }
 
-                _logger.LogInformation("User {Email} authenticated via Google SSO", googleUser.Email);
+                _logger.LogInformation("? User {Email} authenticated successfully via Google SSO", googleUser.Email);
 
                 // TODO: Replace with database lookup or create user if not exists
                 var role = GetUserRole(googleUser.Email);
@@ -52,7 +55,7 @@ namespace Core.Features.Auth.Commands
                 // Generate JWT token
                 var token = await _authService.GenerateTokenAsync(googleUser.Email, role);
 
-                return (token, role);
+                return (token, googleUser.Email, role);
             }
             catch (UnauthorizedAccessException)
             {
@@ -60,7 +63,7 @@ namespace Core.Features.Auth.Commands
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during Google SSO authentication");
+                _logger.LogError(ex, "? Unexpected error during Google SSO authentication: {Message}", ex.Message);
                 throw new UnauthorizedAccessException("Google SSO authentication failed", ex);
             }
         }

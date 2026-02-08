@@ -37,9 +37,11 @@ namespace Infrastructure.Services
             {
                 if (string.IsNullOrEmpty(_googleClientId))
                 {
-                    _logger.LogError("Google ClientId is not configured");
+                    _logger.LogError("Google ClientId is not configured. Cannot verify token.");
                     return null;
                 }
+
+                _logger.LogDebug("Verifying Google ID token. Expected Audience (ClientId): {ClientId}", _googleClientId);
 
                 // Verify the token with Google's servers
                 var payload = await GoogleJsonWebSignature.ValidateAsync(idToken, new GoogleJsonWebSignature.ValidationSettings
@@ -53,7 +55,7 @@ namespace Infrastructure.Services
                     return null;
                 }
 
-                _logger.LogInformation("Google ID token verified successfully for user: {Email}", payload.Email);
+                _logger.LogInformation("? Google ID token verified successfully for user: {Email}", payload.Email);
 
                 return new GoogleUserInfo
                 {
@@ -65,12 +67,18 @@ namespace Infrastructure.Services
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogWarning(ex, "Invalid Google ID token: {Message}", ex.Message);
+                _logger.LogWarning("? Invalid Google ID token - {Message}", ex.Message);
+                _logger.LogWarning("Token validation failed. Possible causes: token expired, wrong audience (Client ID), or invalid signature.");
+                return null;
+            }
+            catch (Google.Apis.Auth.InvalidJwtException ex)
+            {
+                _logger.LogWarning("? JWT validation failed: {Message}", ex.Message);
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error verifying Google ID token");
+                _logger.LogError(ex, "? Unexpected error verifying Google ID token: {Message}", ex.Message);
                 return null;
             }
         }
