@@ -1,5 +1,6 @@
 ﻿using Core.Interfaces;
 using Google.Cloud.Firestore;
+using Infrastructure.Constants;
 using Infrastructure.Data;
 using Infrastructure.Data.MappingProfiles;
 using Infrastructure.Services;
@@ -124,9 +125,9 @@ namespace Infrastructure.Extensions
         {
             try
             {
-                using (var client = new HttpClient { Timeout = TimeSpan.FromSeconds(1) })
+                using (var client = new HttpClient { Timeout = TimeSpan.FromSeconds(GcpConstants.MetadataServerTimeoutSeconds) })
                 {
-                    var response = client.GetAsync("http://metadata.google.internal/computeMetadata/v1/instance/id").Result;
+                    var response = client.GetAsync(GcpConstants.MetadataServerUrl).Result;
                     return response.IsSuccessStatusCode;
                 }
             }

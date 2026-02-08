@@ -145,7 +145,7 @@ namespace OccMinIncidentMapping.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                _logger.LogWarning("Failed Google SSO authentication: {Message}", ex.Message);
+                _logger.LogWarning(ex, "Failed Google SSO authentication");
                 return Unauthorized(new ErrorResponse
                 {
                     Error = "invalid_token",
